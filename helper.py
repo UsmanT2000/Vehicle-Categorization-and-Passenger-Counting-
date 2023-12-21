@@ -68,22 +68,6 @@ def _display_detected_frames(conf, model, st_frame, image):
                    use_column_width=True
                    )
 
-
-def play_youtube_video(conf, model):
-    """
-    Plays a webcam stream. Detects Objects in real-time using the YOLOv8 object detection model.
-
-    Parameters:
-        conf: Confidence of YOLOv8 model.
-        model: An instance of the `YOLOv8` class containing the YOLOv8 model.
-
-    Returns:
-        None
-
-    Raises:
-        None
-    """
-
     #is_display_tracker, tracker = display_tracker_options()
 
 
@@ -127,10 +111,6 @@ def play_rtsp_stream(conf, model):
             vid_cap.release()
             st.sidebar.error("Error loading RTSP stream: " + str(e))
 
-with open('object_counts.csv', 'w', newline='') as csvfile:
-    fieldnames = ['frame_number', 'in_count', 'out_count']  # Update fieldnames
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    writer.writeheader()  # Write the header row
 
 def play_stored_video(conf, model):
     """
@@ -146,6 +126,10 @@ def play_stored_video(conf, model):
     Raises:
         None
     """
+    with open('object_counts.csv', 'w', newline='') as csvfile:
+        fieldnames = ['frame_number', 'in_count', 'out_count']  # Update fieldnames
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()  # Write the header row
     source_vid = st.sidebar.selectbox(
         "Choose a video...", settings.VIDEOS_DICT.keys())
 
