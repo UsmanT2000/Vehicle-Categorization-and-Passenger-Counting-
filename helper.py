@@ -5,7 +5,7 @@ import time
 import streamlit as st
 import cv2
 import numpy as np
-from pytube import YouTube
+import csv
 
 import settings
 
@@ -127,6 +127,11 @@ def play_rtsp_stream(conf, model):
             vid_cap.release()
             st.sidebar.error("Error loading RTSP stream: " + str(e))
 
+with open('object_counts.csv', 'w', newline='') as csvfile:
+    fieldnames = ['frame_number', 'in_count', 'out_count']  # Update fieldnames
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    writer.writeheader()  # Write the header row
+
 def play_stored_video(conf, model):
     """
     Plays a stored video file. Tracks and detects objects in real-time using the YOLOv8 object detection model.
@@ -169,6 +174,12 @@ def play_stored_video(conf, model):
             while (vid_cap.isOpened()):
                 success, im0 = vid_cap.read()
                 if success:
+                    with open('object_counts.csv', 'a', newline='') as csvfile:  # Open CSV within the loop
+                        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                        in_count = counter.in_counts
+                        out_count = counter.out_counts
+                        frame_number = vid_cap.get(cv2.CAP_PROP_POS_FRAMES)
+                        writer.writerow({'frame_number': frame_number, 'in_count': in_count, 'out_count': out_count})
                     image = cv2.resize(im0, (720, int(720*(9/16))))
                     results = model.track(im0, persist=True)
                     im0 = counter.start_counting(im0, results)
