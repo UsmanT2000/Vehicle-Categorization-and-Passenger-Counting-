@@ -6,7 +6,7 @@ import streamlit as st
 import cv2
 import numpy as np
 import csv
-
+import pandas as pd
 import settings
 
 
@@ -127,7 +127,7 @@ def play_stored_video(conf, model):
         None
     """
     with open('object_counts.csv', 'w', newline='') as csvfile:
-        fieldnames = ['frame_number', 'in_count', 'out_count']  # Update fieldnames
+        fieldnames = ['frame_number', 'in_count', 'out_count','vehicle_type']  # Update fieldnames
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()  # Write the header row
     source_vid = st.sidebar.selectbox(
@@ -139,6 +139,11 @@ def play_stored_video(conf, model):
         video_bytes = video_file.read()
     if video_bytes:
         st.video(video_bytes)
+    if st.sidebar.button('Generate Dashboard'):
+        df = pd.read_csv('object_counts.csv')
+        st.subheader("Dataset")
+        st.write(df)
+        
 
     if st.sidebar.button('Detect Video Objects'):
         try:
@@ -163,7 +168,8 @@ def play_stored_video(conf, model):
                         in_count = counter.in_counts
                         out_count = counter.out_counts
                         frame_number = vid_cap.get(cv2.CAP_PROP_POS_FRAMES)
-                        writer.writerow({'frame_number': frame_number, 'in_count': in_count, 'out_count': out_count})
+                        vehicle_type = model.names[2]
+                        writer.writerow({'frame_number': frame_number, 'in_count': in_count, 'out_count': out_count, 'vehicle_type': vehicle_type})
                     image = cv2.resize(im0, (720, int(720*(9/16))))
                     results = model.track(im0, persist=True)
                     im0 = counter.start_counting(im0, results)
