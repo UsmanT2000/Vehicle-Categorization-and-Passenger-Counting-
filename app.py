@@ -1,14 +1,13 @@
 # Python In-built packages
+import hashlib
 from pathlib import Path
-import PIL
 
 # External packages
 import streamlit as st
-
+import sqlite3
 # Local Modules
-import settings
 import helper
-
+import settings
 # Setting page layout
 st.set_page_config(
     page_title="Lucid Transit",
@@ -17,20 +16,33 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Login page content
-def login_page():
-    st.title("Login Page")
+# Function to register a new user
+def register_user(conn, username, password):
+    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+    conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+    conn.commit()
+
+# Registration page content
+def registration_page(conn):
+    st.title("Registration Compartment")
 
     # Username and password input fields
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    username = st.text_input("Choose a Username")
+    password = st.text_input("Choose a Password", type="password")
 
-    # Login button
-    if st.button("Login"):
-        if username == "lucidtransit" and password == "password":
-            st.session_state.is_logged_in = True  # Set login state to True
+    # Registration button
+    if st.button("Register"):
+        if not username or not password:
+            st.error("Username and password are required")
         else:
-            st.error("Invalid username or password")
+            # Check if the username already exists
+            cursor = conn.execute("SELECT * FROM users WHERE username = ?", (username,))
+            if cursor.fetchone() is not None:
+                st.error("Username already exists. Please choose a different one.")
+            else:
+                # Register the user
+                register_user(conn, username, password)
+                st.success("Registration successful. You can now log in.")
 
 # Main page content
 def main_page():
@@ -70,12 +82,17 @@ def main_page():
     else:
         st.error("Please select a valid source type!")
 
+# Main function
 def main():
+    conn = helper.create_connection()  # Create a database connection
+    helper.create_user_table(conn)  # Create the user table if it doesn't exist
+
     if 'is_logged_in' not in st.session_state:
         st.session_state.is_logged_in = False
     
     if not st.session_state.is_logged_in:
-        login_page()
+        helper.login_page(conn)
+        registration_page(conn)  # Display the registration page
     else:
         main_page()
 
