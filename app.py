@@ -73,12 +73,12 @@ def main_page():
     st.sidebar.header("Video Config")
     source_radio = st.sidebar.radio("Select Source", settings.SOURCES_LIST)
 
-    if source_radio == settings.VIDEO:
+    if model_type == 'Passenger Counting' and source_radio == settings.VIDEO:
+        helper.play_passengercount_video(confidence, model)
+    elif source_radio == settings.VIDEO:
         helper.play_stored_video(confidence, model)
-    
     elif source_radio == settings.RTSP:
         helper.play_rtsp_stream(confidence, model)
-
     else:
         st.error("Please select a valid source type!")
 

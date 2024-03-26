@@ -188,19 +188,20 @@ def play_stored_video(conf, model):
     if video_bytes:
         st.video(video_bytes)
     if st.sidebar.button('Generate Dashboard'):
-        df = pd.read_csv('test2.csv')
+        df = pd.read_csv('test3.csv')
 
         last_row = df.iloc[-1]  # Get the last row of the DataFrame
         out_count = last_row['out_count']
         in_count = last_row['in_count']
-        vehicle_type = last_row['vehicle_type']
+        vehicle_type = df['vehicle_type']
 
         out_count = int(out_count)
         in_count = int(in_count)
         out_info_counts = {'Out Count': out_count}
         in_info_counts = {'In Count': in_count}
         vehicle_counts = defaultdict(int)
-        vehicle_counts[vehicle_type] += 1
+        for vt in vehicle_type:
+            vehicle_counts[vt] += 1
         
         st.title("Outflow and Inflow Info Donut Chart")
         plot_donut_chart(out_info_counts,in_info_counts ,"Outflow and Inflow Info Distribution")
@@ -235,7 +236,10 @@ def play_stored_video(conf, model):
                         out_count = counter.out_counts
                         frame_number = vid_cap.get(cv2.CAP_PROP_POS_FRAMES)
                         results = model.track(im0, persist=True)
-                        vehicle_type = model.names[3]
+                        for frame_index, frame_results in enumerate(results):
+                            for detection in frame_results.boxes:
+                                class_id = detection.cls
+                                vehicle_type = model.names[int(class_id)]
                         writer.writerow({'frame_number': frame_number, 'in_count': in_count, 'out_count': out_count, 'vehicle_type': vehicle_type})
                     image = cv2.resize(im0, (720, int(720*(9/16))))
                     
@@ -357,3 +361,34 @@ def login_page(conn):
                 st.session_state.is_logged_in = True
             else:
                 st.error("Invalid username or password")
+
+def play_passengercount_video(conf, model):
+    source_vid = st.sidebar.selectbox(
+        "Choose a video...", settings.VIDEOS_DICT.keys())
+
+    video_path = settings.VIDEOS_DICT.get(source_vid)
+
+    with open(video_path, 'rb') as video_file:
+        video_bytes = video_file.read()
+    if video_bytes:
+        st.video(video_bytes)
+
+    if st.sidebar.button('Detect Objects'):
+        try:
+            vid_cap = cv2.VideoCapture(str(video_path))  # Use full path here
+            st_frame = st.empty()
+            while (vid_cap.isOpened()):
+                success, image = vid_cap.read()
+                if success:
+                    _display_detected_frames(conf,
+                                             model,
+                                             st_frame,
+                                             image,
+                                             )
+                    #is_display_tracker,tracker
+                else:
+                    vid_cap.release()
+                    break
+        except Exception as e:
+            vid_cap.release()
+            st.sidebar.error("Error loading Video: " + str(e))
