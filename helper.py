@@ -12,7 +12,36 @@ import datetime
 import matplotlib.pyplot as plt
 import sqlite3
 import hashlib
+import os
+from dotenv import load_dotenv
+from twilio.rest import Client
 
+def send_sms():
+    account_sid = 'AC355b02488c65d560e0cd9faa55841325'
+    auth_token = 'c193b2c7853e0a502b6787b15c012ca4'
+
+# Twilio phone number (the one you got from Twilio)
+    from_phone = '+18564324705'
+
+# Recipient's phone number
+    to_phone = '+9203195093731'  # Include country code
+
+# Your message
+    message = 'Hello from Twilio!'
+
+# Initialize Twilio client
+    client = Client(account_sid, auth_token)
+
+    try:
+        # Send SMS
+        message = client.messages.create(
+            body=message,
+            from_=from_phone,
+            to=to_phone
+        )
+        print("SMS sent successfully! SID:", message.sid)
+    except Exception as e:
+        print("Error sending SMS:", e)
 
 def load_model(model_path):
     """
@@ -174,10 +203,15 @@ def play_stored_video(conf, model):
     """
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate timestamp
     csv_filename = f"object_counts_{timestamp}.csv"
-    with open(csv_filename, 'w', newline='') as csvfile:
-        fieldnames = ['frame_number', 'in_count', 'out_count', 'vehicle_type']  # Update fieldnames
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()   # Write the header row
+    
+    # Check if the CSV file already exists
+    if not os.path.exists(csv_filename):
+        # Create the CSV file with headers
+        with open(csv_filename, 'w', newline='') as csvfile:
+            fieldnames = ['frame_number', 'in_count', 'out_count', 'vehicle_type']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()   # Write the header row
+
     source_vid = st.sidebar.selectbox(
         "Choose a video...", settings.VIDEOS_DICT.keys())
 
@@ -199,6 +233,10 @@ def play_stored_video(conf, model):
         in_count = int(in_count)
         out_info_counts = {'Out Count': out_count}
         in_info_counts = {'In Count': in_count}
+
+        if in_info_counts.get('In Count', 0) > 2:
+            send_sms()
+
         vehicle_counts = defaultdict(int)
         for vt in vehicle_type:
             vehicle_counts[vt] += 1
@@ -242,7 +280,7 @@ def play_stored_video(conf, model):
                                 vehicle_type = model.names[int(class_id)]
                         writer.writerow({'frame_number': frame_number, 'in_count': in_count, 'out_count': out_count, 'vehicle_type': vehicle_type})
                     image = cv2.resize(im0, (720, int(720*(9/16))))
-                    
+
                     im0 = counter.start_counting(im0, results)
                     if results is not None and results[0].boxes is not None and results[0].boxes.id is not None:
                             # Get the boxes and track IDs
